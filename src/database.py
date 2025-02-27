@@ -48,4 +48,4 @@ def create_grades_db(conn, cursor):
                        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE)''')
         conn.commit()
     except sqlite3.Error as e: 
-        print(f'Failed to create subjects table: {e}')
+        print(f'Failed to create grades table: {e}')
