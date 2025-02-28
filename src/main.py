@@ -1,34 +1,110 @@
 import sqlite3
+import pandas as pd
+from database import create_grades_db, create_students_db, create_subjects_db, connect_database
+from data_operations import insert_grade, insert_student, insert_subject, remove_grade, remove_student,remove_subject
+from tabulate import tabulate
+from analysis import fetch_report_card, fetch_student_rankings, fetch_subject_averages, fetch_students
 
-db_file = 'GradeHub.db'
+DB_FILE = 'data/GradeHub.db'
 
-conn = sqlite3.connect(db_file)
-cursor = conn.cursor()
+def display_menu():
+    print("\n--- GradeHub Menu ---")
+    print("1. Insert Student")
+    print("2. Remove Student")
+    print("3. Insert Subject")
+    print("4. Remove Subject")
+    print("5. Insert Grade")
+    print("6. Remove Grade")
+    print("7. View Students")
+    print("8. Fetch Student Rankings")
+    print("9. Fetch Subject Averages")
+    print("10. Fetch Report Card for a Student")
+    print("11. Exit")
 
-# Enable foreign key constraints
-cursor.execute("PRAGMA foreign_keys = ON;")
+def main():
+    conn, cursor = connect_database()
+    if conn is None or cursor is None:
+        return
 
-# Create tables
-cursor.execute('''CREATE TABLE IF NOT EXISTS students (
-               id INTEGER PRIMARY KEY AUTOINCREMENT,
-               first_name TEXT NOT NULL,
-               last_name TEXT NOT NULL, 
-               email TEXT NOT NULL UNIQUE)
-               ''')
+    create_students_db(conn, cursor)
+    create_subjects_db(conn, cursor)
+    create_grades_db(conn, cursor)
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS subjects (
-               id INTEGER PRIMARY KEY AUTOINCREMENT,
-               subject_name TEXT NOT NULL UNIQUE)
-               ''')
+    while True:
+        display_menu()
+        choice = input("Enter your choice: ")
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS grades (
-               id INTEGER PRIMARY KEY AUTOINCREMENT, 
-               student_id INTEGER,
-               subject_id INTEGER,
-               score INTEGER CHECK(score BETWEEN 0 AND 100),
-               FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-               FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
-               )''')
+        if choice == '1': 
+            first_name = input("Enter first name: ")
+            last_name = input("Enter last name: ")
+            email = input("Enter email: ")
+            insert_student(conn, cursor, first_name, last_name, email)
 
-conn.commit()
-conn.close()
+        elif choice == '2': 
+            student_id = input("Enter student ID to remove: ")
+            if student_id.isdigit():
+                remove_student(conn, cursor, int(student_id))
+            else:
+                print("Invalid student ID. Please enter a number.")
+
+        elif choice == '3':
+            subject_name = input("Enter subject name: ")
+            insert_subject(conn, cursor, subject_name)
+
+        elif choice == '4': 
+            subject_id = input("Enter subject ID to remove: ")
+            if subject_id.isdigit():
+                remove_subject(conn, cursor, int(subject_id))
+            else:
+                print("Invalid subject ID. Please enter a number.")
+
+        elif choice == '5': 
+            student_id = input("Enter student ID: ")
+            subject_id = input("Enter subject ID: ")
+            score = input("Enter score (0-100): ")
+            if student_id.isdigit() and subject_id.isdigit() and score.isdigit():
+                insert_grade(conn, cursor, int(student_id), int(subject_id), int(score))
+            else:
+                print("Invalid input. Please enter numbers for IDs and score.")
+
+        elif choice == '6': 
+            grade_id = input("Enter grade ID to remove: ")
+            if grade_id.isdigit():
+                remove_grade(conn, cursor, int(grade_id))
+            else:
+                print("Invalid grade ID. Please enter a number.")
+        
+        elif choice == '7':
+            students_list = fetch_students(conn)
+            print(tabulate(students_list, headers='keys', tablefmt = 'simple', showindex='never'))
+
+        elif choice == '8': 
+            rankings = fetch_student_rankings(conn)
+            print("\nStudent Rankings:\n")
+            print(tabulate(rankings, headers='keys', tablefmt = 'simple', showindex='never'))
+
+        elif choice == '9':  
+            averages = fetch_subject_averages(conn)
+            print("\nSubject Averages:\n")
+            print(tabulate(averages, headers='keys', tablefmt = 'simple', showindex="never"))
+
+        elif choice == '10': 
+            student_id = input("Enter student ID: ")
+            if student_id.isdigit():
+                report_card = fetch_report_card(conn, int(student_id))
+                print("\nReport Card:\n")
+                print(tabulate(report_card, headers='keys', tablefmt = "simple", showindex="never"))
+            else:
+                print("Invalid student ID. Please enter a number.")
+
+        elif choice == '11':  
+            print("Exiting the program. Goodbye!")
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+
+    conn.close()
+
+if __name__ == "__main__":
+    main()
