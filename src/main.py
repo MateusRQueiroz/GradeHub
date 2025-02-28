@@ -52,27 +52,22 @@ def main():
             insert_subject(conn, cursor, subject_name)
 
         elif choice == '4': 
-            subject_id = input("Enter subject ID to remove: ")
-            if subject_id.isdigit():
-                remove_subject(conn, cursor, int(subject_id))
-            else:
-                print("Invalid subject ID. Please enter a number.")
+            subject_name = input("Enter subject name to remove: ")
+            remove_subject(conn, cursor, str(subject_name))
 
         elif choice == '5': 
             student_id = input("Enter student ID: ")
-            subject_id = input("Enter subject ID: ")
+            subject_name = input("Enter subject name: ")
             score = input("Enter score (0-100): ")
-            if student_id.isdigit() and subject_id.isdigit() and score.isdigit():
-                insert_grade(conn, cursor, int(student_id), int(subject_id), int(score))
+            if student_id.isdigit() and score.isdigit():
+                insert_grade(conn, cursor, int(student_id), str(subject_name), int(score))
             else:
-                print("Invalid input. Please enter numbers for IDs and score.")
+                print("Invalid input. Please enter numbers for ID and score.")
 
         elif choice == '6': 
-            grade_id = input("Enter grade ID to remove: ")
-            if grade_id.isdigit():
-                remove_grade(conn, cursor, int(grade_id))
-            else:
-                print("Invalid grade ID. Please enter a number.")
+            student_id = input("Enter student ID: ")
+            subject_name = input("Enter subject name: ")
+            remove_grade(conn, cursor, int(student_id), str(subject_name))
         
         elif choice == '7':
             students_list = fetch_students(conn)

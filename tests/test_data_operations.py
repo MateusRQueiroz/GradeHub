@@ -67,7 +67,7 @@ def test_insert_subject(db_connection):
 def test_remove_subject_empty(db_connection):
     conn, cursor = db_connection
     insert_subject(conn, cursor, "Math")
-    remove_subject(conn, cursor, None)
+    remove_subject(conn, cursor, "")
     cursor.execute('''SELECT COUNT(*) FROM subjects''')
     result = cursor.fetchone()
     assert result[0] == 1, "Subject should not be removed"
@@ -75,7 +75,7 @@ def test_remove_subject_empty(db_connection):
 def test_remove_subject(db_connection):
     conn, cursor = db_connection 
     insert_subject(conn, cursor, "Math")
-    remove_subject(conn, cursor, 1)
+    remove_subject(conn, cursor, "Math")
     cursor.execute('''SELECT COUNT(*) FROM subjects''')
     result = cursor.fetchone()
     assert result[0] == 0, "Subject should be removed"
@@ -85,7 +85,7 @@ def test_insert_grade_empty(db_connection):
     cursor.execute("PRAGMA foreign_keys = ON")
     insert_student(conn, cursor, "James", "Smith", "James@gmail.com")
     insert_subject(conn, cursor, "Math")
-    insert_grade(conn, cursor, None, None, None)
+    insert_grade(conn, cursor, None, "", None)
     cursor.execute('''SELECT COUNT(*) FROM grades''')
     result = cursor.fetchone()
     assert result[0] == 0, "Grade should not be inserted"
@@ -95,20 +95,20 @@ def test_insert_grade(db_connection):
     cursor.execute("PRAGMA foreign_keys = ON")
     insert_student(conn, cursor, "James", "Smith", "James@gmail.com")
     insert_subject(conn, cursor, "Math")
-
-    cursor.execute('''SELECT id FROM students WHERE first_name = ?''',
-                   ("James",))
+    cursor.execute("SELECT id FROM students WHERE first_name = ?", ("James",))
     student_id = cursor.fetchone()[0]
-    cursor.execute('''SELECT id FROM subjects WHERE subject_name = ?''',
-                   ("Math",))
+    cursor.execute("SELECT id FROM subjects WHERE subject_name = ?", ("Math",))
     subject_id = cursor.fetchone()[0]
 
-    insert_grade(conn, cursor, student_id, subject_id, 100)
-    cursor.execute('''SELECT score FROM grades WHERE id = ?''',
-                   (1,))
+    insert_grade(conn, cursor, student_id, "Math", 100)
+    cursor.execute(
+        '''SELECT score FROM grades WHERE student_id = ? AND subject_id = ?''',
+        (student_id, subject_id)
+    )
     result = cursor.fetchone()
     assert result is not None, "Grade should be inserted"
     assert result[0] == 100, "Grade should be '100'"
+
 
 
 def test_insert_grade_over(db_connection):
@@ -150,21 +150,23 @@ def test_insert_grade_under(db_connection):
 def test_remove_grade_empty(db_connection):
     conn, cursor = db_connection
     cursor.execute("PRAGMA foreign_keys = ON")
-    insert_student(conn, cursor, "James", "Smith", "James@gmail.com")
+    insert_student(conn, cursor, "James", "Smith", "james@example.com")
     insert_subject(conn, cursor, "Math")
-
-    cursor.execute('''SELECT id FROM students WHERE first_name = ?''',
-                   ("James",))
+    
+    cursor.execute("SELECT id FROM students WHERE first_name = ?", ("James",))
     student_id = cursor.fetchone()[0]
-    cursor.execute('''SELECT id FROM subjects WHERE subject_name = ?''',
-                   ("Math",))
-    subject_id = cursor.fetchone()[0]
 
-    insert_grade(conn, cursor, student_id, subject_id, 50)
-    remove_grade(conn, cursor, None)
-    cursor.execute('''SELECT COUNT(*) FROM grades''')
-    result = cursor.fetchone()
-    assert result[0] == 1
+    insert_grade(conn, cursor, student_id, "Math", 50)
+
+    cursor.execute("SELECT COUNT(*) FROM grades")
+    assert cursor.fetchone()[0] == 1, "Grade should exist initially"
+    remove_grade(conn, cursor, student_id, "Math")
+    cursor.execute("SELECT COUNT(*) FROM grades")
+    assert cursor.fetchone()[0] == 0, "Grade should be deleted"
+    remove_grade(conn, cursor, student_id, "Math")
+    cursor.execute("SELECT COUNT(*) FROM grades")
+    assert cursor.fetchone()[0] == 0, "Grade should still be deleted"
+
 
 def test_remove_grade(db_connection):
     conn, cursor = db_connection
@@ -180,7 +182,7 @@ def test_remove_grade(db_connection):
     subject_id = cursor.fetchone()[0]
 
     insert_grade(conn, cursor, student_id, subject_id, 50)
-    remove_grade(conn, cursor, 1)
+    remove_grade(conn, cursor, student_id, "Math")
     cursor.execute('''SELECT COUNT(*) FROM grades''')
     result = cursor.fetchone()
     assert result[0] == 0
